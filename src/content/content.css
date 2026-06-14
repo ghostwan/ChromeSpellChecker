@@ -39,6 +39,30 @@
 .csc-ce-type-style       { text-decoration-color: #4a90e2; }
 .csc-ce-type-punctuation { text-decoration-color: #9b59b6; }
 
+/* ── Inline Gemini button (injected inside the field) ───────────────────── */
+.csc-inline-btn {
+  position: fixed !important;
+  z-index: 2147483644 !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 7px !important;
+  background: linear-gradient(135deg, #4a90e2 0%, #9b59b6 100%) !important;
+  color: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 8px rgba(74,144,226,.45) !important;
+  transition: transform .15s, box-shadow .15s, opacity .15s !important;
+  opacity: .82 !important;
+}
+.csc-inline-btn:hover {
+  opacity: 1 !important;
+  transform: scale(1.12) !important;
+  box-shadow: 0 3px 12px rgba(74,144,226,.55) !important;
+}
+.csc-inline-btn:active { transform: scale(.96) !important; }
+
 /* ── Badge ──────────────────────────────────────────────────────────────── */
 .csc-badge {
   position: fixed !important;

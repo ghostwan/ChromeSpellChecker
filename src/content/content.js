@@ -19,6 +19,8 @@
     punctuation: '#9b59b6',
   };
 
+  const DEBOUNCE_MS = 1200; // LanguageTool auto-check debounce (ms)
+
   const MIRROR_PROPS = [
     'fontFamily','fontSize','fontWeight','fontStyle','fontVariant',
     'lineHeight','letterSpacing','wordSpacing','textAlign','textTransform',
@@ -43,6 +45,10 @@
   let scrollRaf   = null;
   let resizeObs   = null;
   let enabled     = true;   // per-site toggle (loaded on init)
+  let debounceTimer = null;
+  let engineMode    = 'auto'; // 'auto' (LT realtime) | 'manual' (Gemini+key)
+  let inlineBtnEl   = null;
+  let isApplyingFix = false;
 
   // ══════════════════════════════════════════════════════════════
   // STORAGE HELPERS (inline — no ES module import)
@@ -68,6 +74,10 @@
       if (!personalDictionary.includes(w))
         chrome.storage.local.set({ personalDictionary: [...personalDictionary, w] });
     });
+  }
+
+  function loadEngineMode(cb) {
+    getSettings(s => cb(s.engine === 'gemini' && s.geminiApiKey ? 'manual' : 'auto'));
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -248,8 +258,8 @@
     const lbl = badgeEl.querySelector('.csc-badge-lbl');
     switch (state) {
       case 'idle':
-        badgeEl.innerHTML = `${ICON_SPELL}<span class="csc-badge-lbl">Check</span>`;
-        badgeEl.title = 'Check grammar & spelling';
+        badgeEl.innerHTML = `${ICON_SPELL}<span class="csc-badge-lbl">${engineMode === 'auto' ? 'Auto' : 'Check'}</span>`;
+        badgeEl.title = engineMode === 'auto' ? 'Auto-checking (LanguageTool)' : 'Check grammar & spelling';
         break;
       case 'checking':
         badgeEl.innerHTML = `${ICON_SPIN}<span class="csc-badge-lbl">Checking…</span>`;
@@ -302,6 +312,39 @@
     } else {
       triggerCheck();
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // INLINE BUTTON  (Gemini manual mode — injected inside the field)
+  // ══════════════════════════════════════════════════════════════
+
+  const ICON_GEMINI = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-.5 4.5-4 8-8 8.5 4 .5 7.5 4 8 8.5.5-4.5 4-8 8-8.5-4-.5-7.5-4-8-8.5z"/></svg>`;
+
+  function createInlineBtn() {
+    const btn = document.createElement('div');
+    btn.className = 'csc-inline-btn';
+    btn.innerHTML = ICON_GEMINI;
+    btn.title     = 'Check with Gemini AI (⌘⇧Space)';
+    btn.addEventListener('mousedown', e => e.preventDefault()); // no focus steal
+    btn.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); triggerCheck(); });
+    document.documentElement.appendChild(btn);
+    return btn;
+  }
+
+  function positionInlineBtn() {
+    if (!inlineBtnEl || !field) return;
+    const r = field.getBoundingClientRect();
+    const size = 26, margin = 5;
+    const top  = fieldType === 'input'
+      ? r.top + (r.height - size) / 2
+      : r.bottom - size - margin;
+    inlineBtnEl.style.top  = top + 'px';
+    inlineBtnEl.style.left = (r.right - size - margin) + 'px';
+  }
+
+  function removeInlineBtn() {
+    inlineBtnEl?.remove();
+    inlineBtnEl = null;
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -474,8 +517,10 @@
       const delta = replacement.length - iss.length;
       field.value = val.slice(0, iss.offset) + replacement + val.slice(iss.offset + iss.length);
       field.setSelectionRange(iss.offset + replacement.length, iss.offset + replacement.length);
+      isApplyingFix = true;
       field.dispatchEvent(new Event('input',  { bubbles: true }));
       field.dispatchEvent(new Event('change', { bubbles: true }));
+      isApplyingFix = false;
 
       // Shift offsets of subsequent issues
       issues = issues
@@ -622,16 +667,24 @@
       el.addEventListener('click', el.__cscClickHandler);
     }
 
-    // Invalidate on input
+    // Input: auto-check with debounce (LT) or just invalidate (Gemini manual)
     el.__cscInputHandler = () => {
+      if (isApplyingFix) return;
       if (issues.length > 0) {
-        issues  = [];
-        isDirty = true;
+        issues = [];
         if (fieldType === 'ce') removeCESpans(el);
         else refreshMirror();
-        setBadgeState('idle');
         removeCard();
         removeSummary();
+      }
+      if (engineMode === 'auto') {
+        isDirty = false;
+        setBadgeState('idle');
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => { if (field === el) triggerCheck(); }, DEBOUNCE_MS);
+      } else {
+        isDirty = true;
+        setBadgeState('idle');
       }
     };
     el.addEventListener('input', el.__cscInputHandler);
@@ -647,6 +700,20 @@
       el.addEventListener('scroll', el.__cscScrollHandler, { passive: true });
     }
 
+    // Async: determine engine mode → inline btn or initial auto-check
+    loadEngineMode(mode => {
+      if (field !== el) return;
+      engineMode = mode;
+      if (mode === 'manual') {
+        inlineBtnEl = createInlineBtn();
+        positionInlineBtn();
+      } else if (getFieldText(el).trim()) {
+        // Auto mode: check text already present when field gets focus
+        debounceTimer = setTimeout(() => { if (field === el) triggerCheck(); }, 600);
+      }
+      setBadgeState('idle'); // update label (Auto vs Check)
+    });
+
     // ResizeObserver to reposition badge + mirror
     resizeObs = new ResizeObserver(() => {
       schedulePositionUpdate();
@@ -661,7 +728,11 @@
     field.removeEventListener('scroll', field.__cscScrollHandler);
     if (fieldType === 'ce') removeCESpans(field);
     resizeObs?.disconnect();
-    resizeObs   = null;
+    resizeObs     = null;
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+    removeInlineBtn();
+    engineMode    = 'auto';
     removeMirror();
     removeBadge();
     removeCard();
@@ -683,6 +754,7 @@
       if (!field) return;
       if (mirrorEl) positionMirror(mirrorEl, field);
       positionBadge();
+      positionInlineBtn();
     });
   }
 
@@ -732,11 +804,26 @@
     if (active && detectFieldType(active)) attachToField(active);
   });
 
-  // Re-check enabled state when storage changes (popup toggle)
+  // Re-check enabled state and engine mode when storage changes
   chrome.storage.onChanged.addListener(() => {
     isEnabledOnSite(v => {
       enabled = v;
-      if (!enabled) detachFromField();
+      if (!enabled) { detachFromField(); return; }
+      if (!field) return;
+      // Live engine mode switch (e.g. user just added/removed Gemini key)
+      loadEngineMode(mode => {
+        if (!field) return;
+        const prev = engineMode;
+        engineMode = mode;
+        if (prev === mode) return;
+        if (mode === 'manual') {
+          clearTimeout(debounceTimer);
+          if (!inlineBtnEl) { inlineBtnEl = createInlineBtn(); positionInlineBtn(); }
+        } else {
+          removeInlineBtn();
+        }
+        setBadgeState('idle');
+      });
     });
   });
 
