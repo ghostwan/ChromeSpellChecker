@@ -56,10 +56,13 @@
   // ══════════════════════════════════════════════════════════════
 
   function getSettings(cb) {
-    chrome.storage.local.get({
-      engine: 'languagetool', geminiApiKey: '', geminiModel: 'gemini-2.5-flash',
-      language: 'auto', enabledSites: {}, personalDictionary: [],
-    }, cb);
+    if (!isContextAlive()) return;
+    try {
+      chrome.storage.local.get({
+        engine: 'languagetool', geminiApiKey: '', geminiModel: 'gemini-2.5-flash',
+        language: 'auto', enabledSites: {}, personalDictionary: [],
+      }, cb);
+    } catch (_) {}
   }
 
   function isEnabledOnSite(cb) {
@@ -70,11 +73,14 @@
   }
 
   function addToDictionary(word) {
-    chrome.storage.local.get({ personalDictionary: [] }, ({ personalDictionary }) => {
-      const w = word.toLowerCase().trim();
-      if (!personalDictionary.includes(w))
-        chrome.storage.local.set({ personalDictionary: [...personalDictionary, w] });
-    });
+    if (!isContextAlive()) return;
+    try {
+      chrome.storage.local.get({ personalDictionary: [] }, ({ personalDictionary }) => {
+        const w = word.toLowerCase().trim();
+        if (!personalDictionary.includes(w))
+          chrome.storage.local.set({ personalDictionary: [...personalDictionary, w] });
+      });
+    } catch (_) {}
   }
 
   function loadEngineMode(cb) {
@@ -111,6 +117,14 @@
   }
 
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  /**
+   * Returns false when the extension has been reloaded and this content
+   * script is orphaned. All chrome API calls must be guarded by this check.
+   */
+  function isContextAlive() {
+    try { return !!chrome.runtime?.id; } catch (_) { return false; }
+  }
 
   /** Returns the character offset of the cursor inside a contenteditable. */
   function getCECursorOffset(el) {
@@ -620,6 +634,8 @@
 
   function triggerCheck() {
     if (!field || isChecking) return;
+    if (!isContextAlive()) { detachFromField(); return; }
+
     const text = getFieldText(field);
     if (!text.trim()) { setBadgeState('clean'); return; }
 
@@ -629,30 +645,36 @@
     removeCard();
     removeSummary();
 
-    chrome.runtime.sendMessage({ type: 'CHECK_TEXT', text }, res => {
+    try {
+      chrome.runtime.sendMessage({ type: 'CHECK_TEXT', text }, res => {
+        isChecking = false;
+        if (!isContextAlive()) return;
+        if (chrome.runtime.lastError || !res) {
+          setBadgeState('error');
+          badgeEl && (badgeEl.title = chrome.runtime.lastError?.message || 'Extension error');
+          return;
+        }
+        if (!res.ok) {
+          setBadgeState('error');
+          badgeEl && (badgeEl.title = res.error || 'Check failed');
+          return;
+        }
+        issues = res.issues || [];
+        if (fieldType === 'ce') {
+          updateCEOverlays(field, issues);
+        } else {
+          refreshMirror();
+        }
+        if (issues.length === 0) {
+          setBadgeState('clean');
+        } else {
+          setBadgeState('errors', issues.length);
+        }
+      });
+    } catch (_) {
       isChecking = false;
-      if (chrome.runtime.lastError || !res) {
-        setBadgeState('error');
-        badgeEl && (badgeEl.title = chrome.runtime.lastError?.message || 'Extension error');
-        return;
-      }
-      if (!res.ok) {
-        setBadgeState('error');
-        badgeEl && (badgeEl.title = res.error || 'Check failed');
-        return;
-      }
-      issues = res.issues || [];
-      if (fieldType === 'ce') {
-        updateCEOverlays(field, issues);
-      } else {
-        refreshMirror();
-      }
-      if (issues.length === 0) {
-        setBadgeState('clean');
-      } else {
-        setBadgeState('errors', issues.length);
-      }
-    });
+      setBadgeState('error');
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -828,6 +850,7 @@
 
   // Listen for background command relay
   chrome.runtime.onMessage.addListener((msg) => {
+    if (!isContextAlive()) return;
     if (msg.type === 'TRIGGER_CHECK') triggerCheck();
   });
 
@@ -845,6 +868,7 @@
 
   // Re-check enabled state and engine mode when storage changes
   chrome.storage.onChanged.addListener(() => {
+    if (!isContextAlive()) return;
     isEnabledOnSite(v => {
       enabled = v;
       if (!enabled) { detachFromField(); return; }
