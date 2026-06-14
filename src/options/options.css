@@ -1,0 +1,165 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  background: #f5f6f8;
+  color: #222;
+  min-height: 100vh;
+}
+
+.page {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+h1 { font-size: 18px; font-weight: 700; color: #111; }
+.subtitle { font-size: 12px; color: #888; margin-top: 2px; }
+
+/* ── Card ──────────────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px 22px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+}
+.card h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+/* ── Field ─────────────────────────────────────────────────────── */
+.field { margin-bottom: 18px; }
+.field:last-child { margin-bottom: 0; }
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+input[type="text"],
+input[type="password"],
+select {
+  width: 100%;
+  border: 1px solid #d8d8d8;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  color: #222;
+  background: #fafafa;
+  outline: none;
+  transition: border-color .15s;
+}
+input[type="text"]:focus,
+input[type="password"]:focus,
+select:focus { border-color: #4a90e2; background: #fff; }
+
+.input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.input-row input { flex: 1; }
+
+.btn-icon {
+  background: #f0f0f0;
+  border: 1px solid #d8d8d8;
+  border-radius: 6px;
+  padding: 7px 9px;
+  cursor: pointer;
+  color: #555;
+  display: flex;
+  align-items: center;
+}
+.btn-icon:hover { background: #e4e4e4; }
+
+.hint {
+  font-size: 12px;
+  color: #999;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+.hint a { color: #4a90e2; text-decoration: none; }
+.hint a:hover { text-decoration: underline; }
+.mb { margin-bottom: 12px; }
+
+/* ── Dictionary / sites list ───────────────────────────────────── */
+.add-word-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.add-word-row input { flex: 1; }
+
+.btn-add {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.btn-add:hover { background: #3579c8; }
+
+.dict-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.dict-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #f7f7f7;
+  border-radius: 5px;
+  font-size: 13px;
+}
+.dict-list li span { flex: 1; }
+.btn-remove {
+  background: none;
+  border: none;
+  color: #bbb;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 2px;
+  line-height: 1;
+}
+.btn-remove:hover { color: #e03d3d; }
+
+/* ── Save banner ───────────────────────────────────────────────── */
+.banner {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #27ae60;
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  transition: opacity .3s;
+}
+.hidden { display: none !important; }

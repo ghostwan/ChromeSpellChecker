@@ -1,0 +1,233 @@
+/* ── Mirror overlay ─────────────────────────────────────────────────────── */
+.csc-mirror {
+  position: fixed !important;
+  pointer-events: none !important;
+  color: transparent !important;
+  background: transparent !important;
+  overflow: scroll !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  border-color: transparent !important;
+  resize: none !important;
+  z-index: 2147483630 !important;
+  margin: 0 !important;
+  /* font/box props are set inline to match the field exactly */
+}
+.csc-mirror::-webkit-scrollbar { display: none !important; }
+
+/* Underline spans inside the mirror */
+.csc-underline {
+  display: inline !important;
+  text-decoration-line: underline !important;
+  text-decoration-style: wavy !important;
+  text-decoration-skip-ink: none !important;
+}
+.csc-type-spelling    { text-decoration-color: #e03d3d !important; }
+.csc-type-grammar     { text-decoration-color: #e8930d !important; }
+.csc-type-style       { text-decoration-color: #4a90e2 !important; }
+.csc-type-punctuation { text-decoration-color: #9b59b6 !important; }
+
+/* Spans injected directly in contenteditable */
+.csc-ce-underline {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-skip-ink: none;
+  cursor: pointer;
+}
+.csc-ce-type-spelling    { text-decoration-color: #e03d3d; }
+.csc-ce-type-grammar     { text-decoration-color: #e8930d; }
+.csc-ce-type-style       { text-decoration-color: #4a90e2; }
+.csc-ce-type-punctuation { text-decoration-color: #9b59b6; }
+
+/* ── Badge ──────────────────────────────────────────────────────────────── */
+.csc-badge {
+  position: fixed !important;
+  z-index: 2147483645 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4px 9px !important;
+  border-radius: 12px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18) !important;
+  border: 1px solid rgba(0,0,0,.08) !important;
+  transition: opacity .15s, transform .1s !important;
+  white-space: nowrap !important;
+}
+.csc-badge:hover { opacity: .92 !important; transform: scale(1.04) !important; }
+
+.csc-badge-idle    { background: #fff !important; color: #555 !important; }
+.csc-badge-checking { background: #4a90e2 !important; color: #fff !important; }
+.csc-badge-clean   { background: #27ae60 !important; color: #fff !important; }
+.csc-badge-errors  { background: #e8930d !important; color: #fff !important; }
+.csc-badge-error   { background: #e03d3d !important; color: #fff !important; }
+
+.csc-badge svg { display: block !important; flex-shrink: 0 !important; }
+
+@keyframes csc-spin {
+  to { transform: rotate(360deg); }
+}
+.csc-spinner { animation: csc-spin .7s linear infinite !important; }
+
+/* ── Correction card ────────────────────────────────────────────────────── */
+.csc-card {
+  position: fixed !important;
+  z-index: 2147483646 !important;
+  background: #fff !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,.16) !important;
+  min-width: 230px !important;
+  max-width: 340px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 13px !important;
+  color: #222 !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(0,0,0,.1) !important;
+}
+
+.csc-card-header {
+  padding: 10px 12px 8px !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+.csc-card-type-badge {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: .5px !important;
+  text-transform: uppercase !important;
+  padding: 2px 6px !important;
+  border-radius: 10px !important;
+  color: #fff !important;
+  flex-shrink: 0 !important;
+}
+.csc-card-title {
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  flex: 1 !important;
+  color: #222 !important;
+}
+.csc-card-close {
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  color: #999 !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+}
+.csc-card-close:hover { color: #555 !important; }
+
+.csc-card-body {
+  padding: 10px 12px !important;
+}
+.csc-card-message {
+  color: #555 !important;
+  line-height: 1.45 !important;
+  margin-bottom: 10px !important;
+  font-size: 12.5px !important;
+}
+
+.csc-suggestions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-bottom: 10px !important;
+}
+.csc-suggestion-btn {
+  background: #4a90e2 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 5px 10px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transition: background .1s !important;
+}
+.csc-suggestion-btn:hover { background: #3579c8 !important; }
+
+.csc-card-footer {
+  border-top: 1px solid #f0f0f0 !important;
+  padding: 7px 12px !important;
+  display: flex !important;
+  gap: 8px !important;
+}
+.csc-action-btn {
+  background: none !important;
+  border: none !important;
+  color: #777 !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+  font-family: inherit !important;
+}
+.csc-action-btn:hover { background: #f4f4f4 !important; color: #333 !important; }
+
+/* ── Summary panel ──────────────────────────────────────────────────────── */
+.csc-summary {
+  position: fixed !important;
+  z-index: 2147483645 !important;
+  background: #fff !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,.18) !important;
+  width: 300px !important;
+  max-height: 380px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 13px !important;
+  color: #222 !important;
+  border: 1px solid rgba(0,0,0,.1) !important;
+  overflow: hidden !important;
+}
+.csc-summary-header {
+  padding: 10px 14px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+.csc-summary-close {
+  background: none !important; border: none !important; cursor: pointer !important;
+  color: #999 !important; font-size: 16px !important; padding: 0 !important;
+}
+.csc-summary-list {
+  overflow-y: auto !important;
+  flex: 1 !important;
+  padding: 6px 0 !important;
+}
+.csc-summary-item {
+  padding: 8px 14px !important;
+  cursor: pointer !important;
+  border-left: 3px solid transparent !important;
+  display: flex !important;
+  gap: 10px !important;
+  align-items: flex-start !important;
+}
+.csc-summary-item:hover { background: #f8f8f8 !important; }
+.csc-summary-dot {
+  width: 8px !important; height: 8px !important;
+  border-radius: 50% !important; flex-shrink: 0 !important; margin-top: 4px !important;
+}
+.csc-summary-text { flex: 1 !important; line-height: 1.4 !important; }
+.csc-summary-original {
+  font-weight: 600 !important; font-size: 12.5px !important;
+}
+.csc-summary-msg { color: #777 !important; font-size: 12px !important; }
+.csc-summary-empty {
+  padding: 20px 14px !important; color: #27ae60 !important; text-align: center !important;
+}

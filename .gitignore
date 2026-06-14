@@ -1,0 +1,15 @@
+# API keys — never commit these
+.env
+*.env.*
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Build artefacts (if a build step is added later)
+dist/
+node_modules/

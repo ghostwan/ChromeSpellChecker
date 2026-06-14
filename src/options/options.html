@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ChromeSpellChecker — Options</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+    <header>
+      <img src="../../assets/icons/icon48.png" alt="" width="30" height="30">
+      <div>
+        <h1>ChromeSpellChecker</h1>
+        <p class="subtitle">Settings</p>
+      </div>
+    </header>
+
+    <!-- ── API Keys ───────────────────────────────────────────── -->
+    <section class="card">
+      <h2>API Keys</h2>
+
+      <div class="field">
+        <label for="gemini-key">Gemini API Key</label>
+        <div class="input-row">
+          <input type="password" id="gemini-key" placeholder="AIza…" autocomplete="off" spellcheck="false">
+          <button class="btn-icon" id="toggle-key" title="Show / hide">
+            <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <p class="hint">
+          Get a free key at
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>.
+          Stored locally — never sent anywhere except the Gemini API.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Defaults ───────────────────────────────────────────── -->
+    <section class="card">
+      <h2>Defaults</h2>
+
+      <div class="field">
+        <label for="sel-engine">Default engine</label>
+        <select id="sel-engine">
+          <option value="languagetool">LanguageTool (free, no key needed)</option>
+          <option value="gemini">Gemini AI (requires API key)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="sel-lang">Default language</label>
+        <select id="sel-lang">
+          <option value="auto">Auto-detect 🌐</option>
+          <option value="en-US">English — US 🇺🇸</option>
+          <option value="en-GB">English — UK 🇬🇧</option>
+          <option value="fr-FR">French 🇫🇷</option>
+        </select>
+      </div>
+
+      <div class="field" id="model-field">
+        <label for="sel-model">Gemini model</label>
+        <select id="sel-model">
+          <option value="gemini-2.5-flash">gemini-2.5-flash (recommended)</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (cheapest)</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        </select>
+        <p class="hint">Affects speed, quality and cost of Gemini checks.</p>
+      </div>
+    </section>
+
+    <!-- ── Personal dictionary ────────────────────────────────── -->
+    <section class="card">
+      <h2>Personal dictionary</h2>
+      <p class="hint mb">Words in this list are never flagged as spelling errors.</p>
+      <div class="add-word-row">
+        <input type="text" id="new-word" placeholder="Add a word…">
+        <button class="btn-add" id="btn-add-word">Add</button>
+      </div>
+      <ul id="dict-list" class="dict-list"></ul>
+    </section>
+
+    <!-- ── Disabled sites ─────────────────────────────────────── -->
+    <section class="card">
+      <h2>Disabled sites</h2>
+      <p class="hint mb">Sites where ChromeSpellChecker is turned off.</p>
+      <ul id="sites-list" class="dict-list"></ul>
+      <p id="no-sites" class="hint">None — enabled everywhere.</p>
+    </section>
+
+    <div id="save-banner" class="banner hidden">Settings saved.</div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

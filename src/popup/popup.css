@@ -1,0 +1,116 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  width: 280px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #222;
+  background: #fff;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px 11px;
+  border-bottom: 1px solid #ececec;
+}
+.title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #111;
+}
+header a {
+  color: #888;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+header a:hover { color: #333; }
+
+/* ── Section ───────────────────────────────────────────────────── */
+.section { padding: 10px 14px; }
+.divider { border-top: 1px solid #f0f0f0; }
+
+/* ── Field row ─────────────────────────────────────────────────── */
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.field-row:last-child { margin-bottom: 0; }
+label { color: #555; }
+
+select {
+  border: 1px solid #d8d8d8;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 12.5px;
+  color: #222;
+  background: #fafafa;
+  cursor: pointer;
+  outline: none;
+}
+select:focus { border-color: #4a90e2; }
+
+/* ── Toggle ────────────────────────────────────────────────────── */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#lbl-toggle { color: #444; }
+
+.toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; inset: 0;
+  background: #ccc; border-radius: 20px; cursor: pointer;
+  transition: background .2s;
+}
+.slider::before {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  left: 3px; top: 3px;
+  background: #fff; border-radius: 50%;
+  transition: transform .2s;
+}
+.toggle input:checked + .slider { background: #4a90e2; }
+.toggle input:checked + .slider::before { transform: translateX(16px); }
+
+/* ── Check button ──────────────────────────────────────────────── */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px;
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s;
+}
+.btn-primary:hover { background: #3579c8; }
+.btn-primary:active { background: #2d6ab0; }
+
+/* ── Notice ────────────────────────────────────────────────────── */
+.notice {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #888;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+.notice a { color: #4a90e2; text-decoration: none; }
+.notice a:hover { text-decoration: underline; }
+.hidden { display: none !important; }
