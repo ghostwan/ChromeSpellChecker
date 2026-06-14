@@ -27,17 +27,20 @@
 .csc-type-style       { text-decoration-color: #4a90e2 !important; }
 .csc-type-punctuation { text-decoration-color: #9b59b6 !important; }
 
-/* Spans injected directly in contenteditable */
-.csc-ce-underline {
-  text-decoration-line: underline;
-  text-decoration-style: wavy;
-  text-decoration-skip-ink: none;
-  cursor: pointer;
+/* Floating overlay underlines for contenteditable (no DOM injection — cursor safe) */
+.csc-ce-overlay {
+  position: fixed !important;
+  pointer-events: none !important;
+  z-index: 2147483630 !important;
+  height: 3px !important;
+  background-repeat: repeat-x !important;
+  background-size: 6px 3px !important;
+  background-position: left center !important;
 }
-.csc-ce-type-spelling    { text-decoration-color: #e03d3d; }
-.csc-ce-type-grammar     { text-decoration-color: #e8930d; }
-.csc-ce-type-style       { text-decoration-color: #4a90e2; }
-.csc-ce-type-punctuation { text-decoration-color: #9b59b6; }
+.csc-ce-ov-spelling    { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='3'%3E%3Cpath d='M0 2.5 Q1.5 0.5 3 2.5 Q4.5 4.5 6 2.5' fill='none' stroke='%23e03d3d' stroke-width='1.2'/%3E%3C/svg%3E") !important; }
+.csc-ce-ov-grammar     { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='3'%3E%3Cpath d='M0 2.5 Q1.5 0.5 3 2.5 Q4.5 4.5 6 2.5' fill='none' stroke='%23e8930d' stroke-width='1.2'/%3E%3C/svg%3E") !important; }
+.csc-ce-ov-style       { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='3'%3E%3Cpath d='M0 2.5 Q1.5 0.5 3 2.5 Q4.5 4.5 6 2.5' fill='none' stroke='%234a90e2' stroke-width='1.2'/%3E%3C/svg%3E") !important; }
+.csc-ce-ov-punctuation { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='3'%3E%3Cpath d='M0 2.5 Q1.5 0.5 3 2.5 Q4.5 4.5 6 2.5' fill='none' stroke='%239b59b6' stroke-width='1.2'/%3E%3C/svg%3E") !important; }
 
 /* ── Inline Gemini button (injected inside the field) ───────────────────── */
 .csc-inline-btn {

@@ -49,6 +49,7 @@
   let engineMode    = 'auto'; // 'auto' (LT realtime) | 'manual' (Gemini+key)
   let inlineBtnEl   = null;
   let isApplyingFix = false;
+  let ceOverlayEls  = {};   // { [issueId]: [div, …] } — CE floating underline overlays
 
   // ══════════════════════════════════════════════════════════════
   // STORAGE HELPERS (inline — no ES module import)
@@ -123,29 +124,6 @@
     return pre.toString().length;
   }
 
-  /** Restores a cursor position (character offset) inside a contenteditable. */
-  function setCECursorOffset(el, offset) {
-    if (offset === null || offset === undefined) return;
-    let acc = 0;
-    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    let n;
-    while ((n = walker.nextNode())) {
-      const len = n.textContent.length;
-      if (acc + len >= offset) {
-        try {
-          const r = document.createRange();
-          r.setStart(n, offset - acc);
-          r.collapse(true);
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(r);
-        } catch (_) {}
-        return;
-      }
-      acc += len;
-    }
-  }
-
   // ══════════════════════════════════════════════════════════════
   // MIRROR DIV  (textarea / input)
   // ══════════════════════════════════════════════════════════════
@@ -199,7 +177,7 @@
   }
 
   // ══════════════════════════════════════════════════════════════
-  // CONTENTEDITABLE  (inject spans directly)
+  // CONTENTEDITABLE  (floating overlay — no DOM injection)
   // ══════════════════════════════════════════════════════════════
 
   function getTextNodes(root) {
@@ -214,60 +192,65 @@
     return nodes;
   }
 
-  function injectCESpans(el, issueList) {
-    const cur = getCECursorOffset(el); // save BEFORE any DOM change
-    removeCESpans(el);
-    if (!issueList.length) return; // removeCESpans already restored cursor
-
+  /** Returns a Range spanning [offset, offset+length) inside el's text content. */
+  function getRangeForOffset(el, offset, length) {
     const textNodes = getTextNodes(el);
-    const sorted    = [...issueList].sort((a, b) => b.offset - a.offset); // reverse
-
-    for (const iss of sorted) {
-      const end   = iss.offset + iss.length;
-      let startNode, startOff, endNode, endOff;
-
-      for (const { node, start } of textNodes) {
-        const nodeEnd = start + node.textContent.length;
-        if (!startNode && iss.offset >= start && iss.offset <= nodeEnd) {
-          startNode = node; startOff = iss.offset - start;
-        }
-        if (!endNode && end >= start && end <= nodeEnd) {
-          endNode = node; endOff = end - start;
-        }
-        if (startNode && endNode) break;
+    const end = offset + length;
+    let startNode, startOff, endNode, endOff;
+    for (const { node, start } of textNodes) {
+      const nodeEnd = start + node.textContent.length;
+      if (!startNode && offset >= start && offset <= nodeEnd) {
+        startNode = node; startOff = offset - start;
       }
-
-      if (!startNode || !endNode) continue;
-
-      try {
-        const range = document.createRange();
-        range.setStart(startNode, startOff);
-        range.setEnd(endNode, endOff);
-
-        const span       = document.createElement('span');
-        span.className   = `csc-ce-underline csc-ce-type-${iss.type}`;
-        span.dataset.id  = iss.id;
-        range.surroundContents(span);
-
-        span.addEventListener('click', e => {
-          e.preventDefault(); e.stopPropagation();
-          showCard(iss, e.clientX, e.clientY);
-        });
-      } catch (_) { /* range spans element boundaries — skip */ }
+      if (!endNode && end >= start && end <= nodeEnd) {
+        endNode = node; endOff = end - start;
+      }
+      if (startNode && endNode) break;
     }
-
-    if (cur !== null) setCECursorOffset(el, cur); // restore cursor after all span injection
+    if (!startNode || !endNode) return null;
+    try {
+      const r = document.createRange();
+      r.setStart(startNode, startOff);
+      r.setEnd(endNode, endOff);
+      return r;
+    } catch (_) { return null; }
   }
 
-  function removeCESpans(el) {
-    const cur = getCECursorOffset(el);
-    el.querySelectorAll('.csc-ce-underline').forEach(span => {
-      const parent = span.parentNode;
-      while (span.firstChild) parent.insertBefore(span.firstChild, span);
-      parent.removeChild(span);
-    });
-    el.normalize();
-    if (cur !== null) setCECursorOffset(el, cur);
+  /**
+   * Creates position:fixed underline overlay divs for each CE issue.
+   * Zero DOM injection into the CE element — cursor is never disturbed.
+   */
+  function updateCEOverlays(el, issueList) {
+    clearCEOverlays();
+    for (const iss of issueList) {
+      const range = getRangeForOffset(el, iss.offset, iss.length);
+      if (!range) continue;
+      const rects = Array.from(range.getClientRects());
+      const divs  = [];
+      for (const rect of rects) {
+        if (rect.width < 1) continue;
+        const d = document.createElement('div');
+        d.className   = `csc-ce-overlay csc-ce-ov-${iss.type}`;
+        d.dataset.id  = iss.id;
+        d.style.top   = (rect.bottom - 3) + 'px';
+        d.style.left  = rect.left + 'px';
+        d.style.width = rect.width + 'px';
+        document.documentElement.appendChild(d);
+        divs.push(d);
+      }
+      if (divs.length) ceOverlayEls[iss.id] = divs;
+    }
+  }
+
+  /** Removes overlay divs for one issue (by id) or all issues (no argument). */
+  function clearCEOverlays(issueId) {
+    if (issueId !== undefined) {
+      (ceOverlayEls[issueId] || []).forEach(d => d.remove());
+      delete ceOverlayEls[issueId];
+    } else {
+      Object.values(ceOverlayEls).forEach(divs => divs.forEach(d => d.remove()));
+      ceOverlayEls = {};
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -545,46 +528,45 @@
     if (!field) return;
     removeCard();
 
+    const delta = replacement.length - iss.length;
+
     if (fieldType === 'ce') {
-      const span = field.querySelector(`.csc-ce-underline[data-id="${iss.id}"]`);
-      if (span) {
-        const tn = document.createTextNode(replacement);
-        span.parentNode.replaceChild(tn, span);
+      const range = getRangeForOffset(field, iss.offset, iss.length);
+      if (range) {
+        range.deleteContents();
+        range.insertNode(document.createTextNode(replacement));
         field.normalize();
       }
-    } else {
-      const val   = field.value;
-      const delta = replacement.length - iss.length;
-      field.value = val.slice(0, iss.offset) + replacement + val.slice(iss.offset + iss.length);
-      field.setSelectionRange(iss.offset + replacement.length, iss.offset + replacement.length);
-      isApplyingFix = true;
-      field.dispatchEvent(new Event('input',  { bubbles: true }));
-      field.dispatchEvent(new Event('change', { bubbles: true }));
-      isApplyingFix = false;
-
-      // Shift offsets of subsequent issues
       issues = issues
         .filter(i => i.id !== iss.id)
         .map(i => i.offset > iss.offset ? { ...i, offset: i.offset + delta } : i);
-
-      refreshMirror();
+      updateCEOverlays(field, issues);
+      updateAfterIssueChange();
+      return;
     }
 
-    issues = issues.filter(i => i.id !== iss.id);
+    // textarea / input
+    const val = field.value;
+    field.value = val.slice(0, iss.offset) + replacement + val.slice(iss.offset + iss.length);
+    field.setSelectionRange(iss.offset + replacement.length, iss.offset + replacement.length);
+    isApplyingFix = true;
+    field.dispatchEvent(new Event('input',  { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    isApplyingFix = false;
+
+    issues = issues
+      .filter(i => i.id !== iss.id)
+      .map(i => i.offset > iss.offset ? { ...i, offset: i.offset + delta } : i);
+
+    refreshMirror();
     updateAfterIssueChange();
   }
 
   function ignoreIssue(iss) {
     removeCard();
     issues = issues.filter(i => i.id !== iss.id);
-    if (fieldType === 'ce' && field) {
-      const span = field.querySelector(`.csc-ce-underline[data-id="${iss.id}"]`);
-      if (span) {
-        const parent = span.parentNode;
-        while (span.firstChild) parent.insertBefore(span.firstChild, span);
-        parent.removeChild(span);
-        field.normalize();
-      }
+    if (fieldType === 'ce') {
+      clearCEOverlays(iss.id);
     } else {
       refreshMirror();
     }
@@ -594,21 +576,15 @@
   function addIssueToDict(iss) {
     const word = field ? getFieldText(field).slice(iss.offset, iss.offset + iss.length) : '';
     if (word) addToDictionary(word);
-    // Remove all issues matching that word
-    issues = issues.filter(i => {
+    // Identify all issues matching that word, then remove them
+    const toRemove = issues.filter(i => {
       const w = field ? getFieldText(field).slice(i.offset, i.offset + i.length) : '';
-      return w.toLowerCase() !== word.toLowerCase();
+      return w.toLowerCase() === word.toLowerCase();
     });
+    issues = issues.filter(i => !toRemove.includes(i));
     removeCard();
-    if (fieldType === 'ce' && field) {
-      field.querySelectorAll('.csc-ce-underline').forEach(span => {
-        if (span.textContent.toLowerCase() === word.toLowerCase()) {
-          const p = span.parentNode;
-          while (span.firstChild) p.insertBefore(span.firstChild, span);
-          p.removeChild(span);
-          field.normalize();
-        }
-      });
+    if (fieldType === 'ce') {
+      toRemove.forEach(i => clearCEOverlays(i.id));
     } else {
       refreshMirror();
     }
@@ -653,7 +629,7 @@
       }
       issues = res.issues || [];
       if (fieldType === 'ce') {
-        injectCESpans(field, issues);
+        updateCEOverlays(field, issues);
       } else {
         refreshMirror();
       }
@@ -686,33 +662,46 @@
       mirrorEl = createMirror(el);
     }
 
-    // Click on textarea/input to hit an underlined word
-    if (fieldType !== 'ce') {
-      el.__cscClickHandler = () => {
+    // Click handler: hit-test issues from cursor/selection position
+    el.__cscClickHandler = () => {
+      if (fieldType === 'ce') {
+        const pos = getCECursorOffset(el);
+        if (pos === null) { removeCard(); return; }
+        const hit = issues.find(i => pos >= i.offset && pos <= i.offset + i.length);
+        if (hit) {
+          const range = getRangeForOffset(el, hit.offset, hit.length);
+          let cx = el.getBoundingClientRect().left + 40;
+          let cy = el.getBoundingClientRect().top  + 20;
+          if (range) {
+            const rects = range.getClientRects();
+            if (rects.length) { const r = rects[0]; cx = r.left; cy = r.bottom; }
+          }
+          showCard(hit, cx, cy);
+        } else {
+          removeCard();
+        }
+      } else {
         const pos = el.selectionStart;
         const hit = issues.find(i => pos >= i.offset && pos < i.offset + i.length);
         if (hit) {
           const span = mirrorEl?.querySelector(`[data-id="${hit.id}"]`);
           let cx = el.getBoundingClientRect().left + 40;
           let cy = el.getBoundingClientRect().top  + 20;
-          if (span) {
-            const r = span.getBoundingClientRect();
-            cx = r.left; cy = r.bottom;
-          }
+          if (span) { const r = span.getBoundingClientRect(); cx = r.left; cy = r.bottom; }
           showCard(hit, cx, cy);
         } else {
           removeCard();
         }
-      };
-      el.addEventListener('click', el.__cscClickHandler);
-    }
+      }
+    };
+    el.addEventListener('click', el.__cscClickHandler);
 
     // Input: auto-check with debounce (LT) or just invalidate (Gemini manual)
     el.__cscInputHandler = () => {
       if (isApplyingFix) return;
       if (issues.length > 0) {
         issues = [];
-        if (fieldType === 'ce') removeCESpans(el);
+        if (fieldType === 'ce') clearCEOverlays();
         else refreshMirror();
         removeCard();
         removeSummary();
@@ -729,16 +718,11 @@
     };
     el.addEventListener('input', el.__cscInputHandler);
 
-    // Sync mirror scroll
-    if (fieldType !== 'ce') {
-      el.__cscScrollHandler = () => {
-        if (mirrorEl) {
-          mirrorEl.scrollTop  = el.scrollTop;
-          mirrorEl.scrollLeft = el.scrollLeft;
-        }
-      };
-      el.addEventListener('scroll', el.__cscScrollHandler, { passive: true });
-    }
+    // Sync mirror scroll (textarea/input) or reposition CE overlays on internal scroll
+    el.__cscScrollHandler = fieldType === 'ce'
+      ? () => schedulePositionUpdate()
+      : () => { if (mirrorEl) { mirrorEl.scrollTop = el.scrollTop; mirrorEl.scrollLeft = el.scrollLeft; } };
+    el.addEventListener('scroll', el.__cscScrollHandler, { passive: true });
 
     // Async: determine engine mode → inline btn or initial auto-check
     loadEngineMode(mode => {
@@ -766,7 +750,7 @@
     field.removeEventListener('click',  field.__cscClickHandler);
     field.removeEventListener('input',  field.__cscInputHandler);
     field.removeEventListener('scroll', field.__cscScrollHandler);
-    if (fieldType === 'ce') removeCESpans(field);
+    if (fieldType === 'ce') clearCEOverlays();
     resizeObs?.disconnect();
     resizeObs     = null;
     clearTimeout(debounceTimer);
@@ -793,6 +777,7 @@
       scrollRaf = null;
       if (!field) return;
       if (mirrorEl) positionMirror(mirrorEl, field);
+      if (fieldType === 'ce' && issues.length) updateCEOverlays(field, issues);
       positionBadge();
       positionInlineBtn();
     });
