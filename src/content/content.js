@@ -259,6 +259,12 @@
         d.style.top   = (rect.bottom - 3) + 'px';
         d.style.left  = rect.left + 'px';
         d.style.width = rect.width + 'px';
+        // Clicking the overlay directly shows the card — no cursor hit-test needed
+        d.addEventListener('mousedown', e => e.preventDefault()); // don't steal focus
+        d.addEventListener('click', e => {
+          e.stopPropagation();
+          showCard(iss, e.clientX, e.clientY);
+        });
         document.documentElement.appendChild(d);
         divs.push(d);
       }
@@ -557,10 +563,31 @@
     if (fieldType === 'ce') {
       const range = getRangeForOffset(field, iss.offset, iss.length);
       if (range) {
-        range.deleteContents();
-        range.insertNode(document.createTextNode(replacement));
-        field.normalize();
-        setCECursorToEnd(field); // return cursor to end so writing can resume
+        // Focus the field first — required for execCommand and prevents premature detach
+        field.focus();
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        try {
+          isApplyingFix = true;
+          // execCommand fires proper input events that React/Draft.js editors expect
+          const applied = document.execCommand('insertText', false, replacement);
+          isApplyingFix = false;
+          if (!applied) {
+            // Fallback: direct DOM manipulation for non-React CEs
+            range.deleteContents();
+            range.insertNode(document.createTextNode(replacement));
+            field.normalize();
+          }
+        } catch (_) {
+          isApplyingFix = false;
+          try {
+            range.deleteContents();
+            range.insertNode(document.createTextNode(replacement));
+            field.normalize();
+          } catch (_2) {}
+        }
+        setCECursorToEnd(field);
       }
       issues = issues
         .filter(i => i.id !== iss.id)
@@ -698,24 +725,11 @@
       mirrorEl = createMirror(el);
     }
 
-    // Click handler: hit-test issues from cursor/selection position
+    // Click handler: hit-test issues for textarea/input via selectionStart.
+    // For CE, overlay divs handle their own clicks directly.
     el.__cscClickHandler = () => {
       if (fieldType === 'ce') {
-        const pos = getCECursorOffset(el);
-        if (pos === null) { removeCard(); return; }
-        const hit = issues.find(i => pos >= i.offset && pos <= i.offset + i.length);
-        if (hit) {
-          const range = getRangeForOffset(el, hit.offset, hit.length);
-          let cx = el.getBoundingClientRect().left + 40;
-          let cy = el.getBoundingClientRect().top  + 20;
-          if (range) {
-            const rects = range.getClientRects();
-            if (rects.length) { const r = rects[0]; cx = r.left; cy = r.bottom; }
-          }
-          showCard(hit, cx, cy);
-        } else {
-          removeCard();
-        }
+        removeCard(); // clicking in the CE field (not on an overlay) dismisses the card
       } else {
         const pos = el.selectionStart;
         const hit = issues.find(i => pos >= i.offset && pos < i.offset + i.length);

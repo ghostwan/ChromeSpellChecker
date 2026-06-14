@@ -30,9 +30,9 @@
 /* Floating overlay underlines for contenteditable (no DOM injection — cursor safe) */
 .csc-ce-overlay {
   position: fixed !important;
-  pointer-events: none !important;
   z-index: 2147483630 !important;
   height: 3px !important;
+  cursor: pointer !important;
   background-repeat: repeat-x !important;
   background-size: 6px 3px !important;
   background-position: left center !important;
