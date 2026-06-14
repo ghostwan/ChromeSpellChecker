@@ -111,6 +111,41 @@
 
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
+  /** Returns the character offset of the cursor inside a contenteditable. */
+  function getCECursorOffset(el) {
+    const sel = window.getSelection();
+    if (!sel?.rangeCount) return null;
+    const range = sel.getRangeAt(0);
+    if (!el.contains(range.startContainer)) return null;
+    const pre = document.createRange();
+    pre.selectNodeContents(el);
+    pre.setEnd(range.startContainer, range.startOffset);
+    return pre.toString().length;
+  }
+
+  /** Restores a cursor position (character offset) inside a contenteditable. */
+  function setCECursorOffset(el, offset) {
+    if (offset === null || offset === undefined) return;
+    let acc = 0;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = walker.nextNode())) {
+      const len = n.textContent.length;
+      if (acc + len >= offset) {
+        try {
+          const r = document.createRange();
+          r.setStart(n, offset - acc);
+          r.collapse(true);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(r);
+        } catch (_) {}
+        return;
+      }
+      acc += len;
+    }
+  }
+
   // ══════════════════════════════════════════════════════════════
   // MIRROR DIV  (textarea / input)
   // ══════════════════════════════════════════════════════════════
@@ -180,8 +215,9 @@
   }
 
   function injectCESpans(el, issueList) {
+    const cur = getCECursorOffset(el); // save BEFORE any DOM change
     removeCESpans(el);
-    if (!issueList.length) return;
+    if (!issueList.length) return; // removeCESpans already restored cursor
 
     const textNodes = getTextNodes(el);
     const sorted    = [...issueList].sort((a, b) => b.offset - a.offset); // reverse
@@ -219,15 +255,19 @@
         });
       } catch (_) { /* range spans element boundaries — skip */ }
     }
+
+    if (cur !== null) setCECursorOffset(el, cur); // restore cursor after all span injection
   }
 
   function removeCESpans(el) {
+    const cur = getCECursorOffset(el);
     el.querySelectorAll('.csc-ce-underline').forEach(span => {
       const parent = span.parentNode;
       while (span.firstChild) parent.insertBefore(span.firstChild, span);
       parent.removeChild(span);
     });
     el.normalize();
+    if (cur !== null) setCECursorOffset(el, cur);
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -590,8 +630,8 @@
 
   function triggerCheck() {
     if (!field || isChecking) return;
-    const text = getFieldText(field).trim();
-    if (!text) { setBadgeState('clean'); return; }
+    const text = getFieldText(field);
+    if (!text.trim()) { setBadgeState('clean'); return; }
 
     isChecking = true;
     isDirty    = false;
