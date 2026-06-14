@@ -124,6 +124,16 @@
     return pre.toString().length;
   }
 
+  /** Moves the cursor to the very end of a contenteditable element. */
+  function setCECursorToEnd(el) {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false); // collapse to end
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
   // ══════════════════════════════════════════════════════════════
   // MIRROR DIV  (textarea / input)
   // ══════════════════════════════════════════════════════════════
@@ -536,6 +546,7 @@
         range.deleteContents();
         range.insertNode(document.createTextNode(replacement));
         field.normalize();
+        setCECursorToEnd(field); // return cursor to end so writing can resume
       }
       issues = issues
         .filter(i => i.id !== iss.id)
@@ -548,7 +559,10 @@
     // textarea / input
     const val = field.value;
     field.value = val.slice(0, iss.offset) + replacement + val.slice(iss.offset + iss.length);
-    field.setSelectionRange(iss.offset + replacement.length, iss.offset + replacement.length);
+    // Return cursor to end of field so writing can resume
+    field.focus();
+    const endPos = field.value.length;
+    field.setSelectionRange(endPos, endPos);
     isApplyingFix = true;
     field.dispatchEvent(new Event('input',  { bubbles: true }));
     field.dispatchEvent(new Event('change', { bubbles: true }));
