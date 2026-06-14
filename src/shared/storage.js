@@ -7,6 +7,7 @@ export const DEFAULTS = {
   language:          'auto',         // 'auto' | 'en-US' | 'fr-FR'
   enabledSites:      {},             // { [hostname]: bool }; absent = enabled
   personalDictionary: [],
+  autoAdvance:       true,           // jump to next issue automatically after applying a fix
 };
 
 export function getSettings() {

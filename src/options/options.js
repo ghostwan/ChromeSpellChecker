@@ -4,7 +4,7 @@ const $ = id => document.getElementById(id);
 
 const DEFAULTS = {
   engine: 'languagetool', geminiApiKey: '', geminiModel: 'gemini-2.5-flash',
-  language: 'auto', enabledSites: {}, personalDictionary: [],
+  language: 'auto', enabledSites: {}, personalDictionary: [], autoAdvance: true,
 };
 
 function getSettings() {
@@ -103,6 +103,7 @@ async function init() {
   $('sel-engine').value  = s.engine;
   $('sel-lang').value    = s.language;
   $('sel-model').value   = s.geminiModel;
+  $('chk-auto-advance').checked = s.autoAdvance !== false;
 
   // Show/hide model selector based on engine
   $('model-field').style.display = s.engine === 'gemini' ? '' : 'none';
@@ -126,6 +127,7 @@ async function init() {
   $('sel-engine').addEventListener('change', autoSave('engine',       () => $('sel-engine').value));
   $('sel-lang').addEventListener('change',   autoSave('language',     () => $('sel-lang').value));
   $('sel-model').addEventListener('change',  autoSave('geminiModel',  () => $('sel-model').value));
+  $('chk-auto-advance').addEventListener('change', autoSave('autoAdvance', () => $('chk-auto-advance').checked));
 
   // ── Add word ───────────────────────────────────────────────────
 

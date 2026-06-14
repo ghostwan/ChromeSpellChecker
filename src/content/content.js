@@ -50,6 +50,7 @@
   let inlineBtnEl   = null;
   let isApplyingFix = false;
   let ceOverlayEls  = {};   // { [issueId]: [div, …] } — CE floating underline overlays
+  let autoAdvance   = true; // mirror of storage.autoAdvance — advance card after each fix
 
   // ══════════════════════════════════════════════════════════════
   // STORAGE HELPERS (inline — no ES module import)
@@ -58,9 +59,9 @@
   function getSettings(cb) {
     if (!isContextAlive()) return;
     try {
-      chrome.storage.local.get({
+    chrome.storage.local.get({
         engine: 'languagetool', geminiApiKey: '', geminiModel: 'gemini-2.5-flash',
-        language: 'auto', enabledSites: {}, personalDictionary: [],
+        language: 'auto', enabledSites: {}, personalDictionary: [], autoAdvance: true,
       }, cb);
     } catch (_) {}
   }
@@ -594,6 +595,7 @@
         .map(i => i.offset > iss.offset ? { ...i, offset: i.offset + delta } : i);
       updateCEOverlays(field, issues);
       updateAfterIssueChange();
+      if (autoAdvance && issues.length > 0) advanceToNextIssue(iss.offset);
       return;
     }
 
@@ -615,6 +617,7 @@
 
     refreshMirror();
     updateAfterIssueChange();
+    if (autoAdvance && issues.length > 0) advanceToNextIssue(iss.offset);
   }
 
   function ignoreIssue(iss) {
@@ -644,6 +647,37 @@
       refreshMirror();
     }
     updateAfterIssueChange();
+  }
+
+  // Advance card to the next issue in document order after fromOffset.
+  // Used when autoAdvance is enabled after applying a fix.
+  function advanceToNextIssue(fromOffset) {
+    if (!issues.length) return;
+    const sorted = [...issues].sort((a, b) => a.offset - b.offset);
+    // Pick first issue at or after the fixed position; wrap to beginning if none
+    const next = sorted.find(i => i.offset >= fromOffset) || sorted[0];
+    let cx, cy;
+    if (fieldType === 'ce') {
+      const divs = ceOverlayEls[next.id];
+      if (divs && divs.length) {
+        const r = divs[0].getBoundingClientRect();
+        cx = r.left;
+        cy = r.bottom;
+      } else {
+        const fr = field.getBoundingClientRect();
+        cx = fr.left + 40; cy = fr.top + 20;
+      }
+    } else {
+      const span = mirrorEl?.querySelector(`[data-id="${next.id}"]`);
+      if (span) {
+        const r = span.getBoundingClientRect();
+        cx = r.left; cy = r.bottom;
+      } else {
+        const fr = field.getBoundingClientRect();
+        cx = fr.left + 40; cy = fr.top + 20;
+      }
+    }
+    showCard(next, cx, cy);
   }
 
   function updateAfterIssueChange() {
@@ -880,9 +914,13 @@
     if (active && detectFieldType(active)) attachToField(active);
   });
 
+  // Load autoAdvance preference on startup
+  getSettings(s => { autoAdvance = s.autoAdvance !== false; });
+
   // Re-check enabled state and engine mode when storage changes
   chrome.storage.onChanged.addListener(() => {
     if (!isContextAlive()) return;
+    getSettings(s => { autoAdvance = s.autoAdvance !== false; });
     isEnabledOnSite(v => {
       enabled = v;
       if (!enabled) { detachFromField(); return; }
