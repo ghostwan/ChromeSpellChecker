@@ -114,3 +114,12 @@ select:focus { border-color: #4a90e2; }
 .notice a { color: #4a90e2; text-decoration: none; }
 .notice a:hover { text-decoration: underline; }
 .hidden { display: none !important; }
+
+/* ── Version footer ────────────────────────────────────────────── */
+#ver {
+  padding: 5px 14px;
+  font-size: 11px;
+  color: #bbb;
+  text-align: right;
+  border-top: 1px solid #f0f0f0;
+}

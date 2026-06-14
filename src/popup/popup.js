@@ -76,4 +76,6 @@ async function init() {
   });
 }
 
-init();
+  $('ver').textContent = 'v' + chrome.runtime.getManifest().version;
+
+  init();
